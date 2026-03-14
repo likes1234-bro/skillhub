@@ -1,4 +1,4 @@
-.PHONY: help dev dev-all dev-down dev-all-down dev-all-reset build test clean web-install dev-server dev-web build-web test-web typecheck-web lint-web generate-api db-reset
+.PHONY: help dev dev-all dev-down dev-all-down dev-all-reset dev-logs dev-status build test clean web-install dev-server dev-web build-web test-web typecheck-web lint-web generate-api db-reset validate-release-config staging staging-down staging-logs pr agent-worktrees agent-sync
 
 DEV_DIR := .dev
 DEV_SERVER_PID := $(DEV_DIR)/server.pid
@@ -7,14 +7,24 @@ DEV_SERVER_LOG := $(DEV_DIR)/server.log
 DEV_WEB_LOG := $(DEV_DIR)/web.log
 DEV_WEB_URL := http://localhost:3000
 DEV_API_URL := http://localhost:8080
+STAGING_API_URL := http://localhost:8080
+STAGING_WEB_URL := http://localhost
+STAGING_SERVER_IMAGE := skillhub-server:staging
 DEV_PROCESS := python3 scripts/dev_process.py
+AGENT_BASE_REF ?= origin/main
+AGENT_WORKTREE_ROOT ?=
+DEV_COMPOSE_PROJECT_NAME ?= skillhub
+STAGING_COMPOSE_PROJECT_NAME ?= skillhub-staging
+DEV_COMPOSE := docker compose -p $(DEV_COMPOSE_PROJECT_NAME)
+STAGING_BASE_COMPOSE := docker compose -p $(STAGING_COMPOSE_PROJECT_NAME)
+STAGING_COMPOSE := $(STAGING_BASE_COMPOSE) -f docker-compose.yml -f docker-compose.staging.yml
 
 help: ## 显示帮助
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | \
 		awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-15s\033[0m %s\n", $$1, $$2}'
 
 dev: ## 启动本地开发环境（仅依赖服务）
-	docker compose up -d --wait --remove-orphans
+	$(DEV_COMPOSE) up -d --wait --remove-orphans
 	@echo "Services ready."
 	@echo "Start backend with: make dev-server"
 	@echo "Start frontend with: make dev-web"
@@ -91,7 +101,7 @@ dev-server: ## 启动后端开发服务器
 	cd server && /bin/sh -lc './mvnw -pl skillhub-app -am install -DskipTests >/dev/null && exec ./mvnw -pl skillhub-app spring-boot:run -Dspring-boot.run.profiles=local'
 
 dev-down: ## 停止本地开发环境
-	docker compose down --remove-orphans
+	$(DEV_COMPOSE) down --remove-orphans
 
 dev-all-down: ## 停止本地开发环境（依赖 + 后端 + 前端）
 	@$(DEV_PROCESS) stop --pid-file $(DEV_SERVER_PID)
@@ -101,9 +111,37 @@ dev-all-down: ## 停止本地开发环境（依赖 + 后端 + 前端）
 dev-all-reset: ## 重置本地开发环境（清理依赖数据卷后重新启动）
 	@$(DEV_PROCESS) stop --pid-file $(DEV_SERVER_PID)
 	@$(DEV_PROCESS) stop --pid-file $(DEV_WEB_PID)
-	docker compose down -v --remove-orphans
+	$(DEV_COMPOSE) down -v --remove-orphans
 	rm -rf $(DEV_DIR)
 	@$(MAKE) dev-all
+
+dev-status: ## 查看本地开发服务状态
+	@echo "=== Dependency Services ==="
+	@$(DEV_COMPOSE) ps
+	@echo ""
+	@echo "=== Backend ==="
+	@if $(DEV_PROCESS) status --pid-file $(DEV_SERVER_PID) >/dev/null 2>&1; then \
+		echo "  Running (PID $$(cat $(DEV_SERVER_PID)))"; \
+	else \
+		echo "  Not running"; \
+	fi
+	@echo "=== Frontend ==="
+	@if $(DEV_PROCESS) status --pid-file $(DEV_WEB_PID) >/dev/null 2>&1; then \
+		echo "  Running (PID $$(cat $(DEV_WEB_PID)))"; \
+	else \
+		echo "  Not running"; \
+	fi
+
+dev-logs: ## 实时查看开发服务日志（backend/frontend，默认 backend）
+	@SERVICE=$${SERVICE:-backend}; \
+	if [ "$$SERVICE" = "backend" ]; then \
+		tail -f $(DEV_SERVER_LOG); \
+	elif [ "$$SERVICE" = "frontend" ]; then \
+		tail -f $(DEV_WEB_LOG); \
+	else \
+		echo "Unknown service: $$SERVICE. Use SERVICE=backend or SERVICE=frontend"; \
+		exit 1; \
+	fi
 
 build: ## 构建后端
 	cd server && ./mvnw clean package -DskipTests
@@ -113,7 +151,7 @@ test: ## 运行后端测试
 
 clean: ## 清理构建产物
 	cd server && ./mvnw clean
-	docker compose down -v
+	$(DEV_COMPOSE) down -v
 	rm -rf $(DEV_DIR)
 
 generate-api: ## 生成 OpenAPI 类型（前端用）
@@ -139,6 +177,96 @@ lint-web: ## 前端代码检查
 	cd web && pnpm run lint
 
 db-reset: ## 重置数据库
-	docker compose down -v --remove-orphans
-	docker compose up -d --wait --remove-orphans postgres
+	$(DEV_COMPOSE) down -v --remove-orphans
+	$(DEV_COMPOSE) up -d --wait --remove-orphans postgres
 	cd server && ./mvnw flyway:migrate -pl skillhub-app
+
+validate-release-config: ## 校验发布环境变量文件（默认 .env.release）
+	./scripts/validate-release-config.sh .env.release
+
+staging: ## 构建并启动 staging 环境，运行 smoke test（混合模式：后端镜像 + 前端静态文件）
+	@echo "=== [1/5] Building backend JAR and Docker image ==="
+	cd server && ./mvnw package -DskipTests -B -q
+	docker build -t $(STAGING_SERVER_IMAGE) -f server/Dockerfile.dev server
+	@echo "=== [2/5] Building frontend static files ==="
+	cd web && pnpm run build
+	@echo "=== [3/5] Starting dependency services ==="
+	$(STAGING_BASE_COMPOSE) up -d --wait
+	@echo "=== [4/5] Starting staging services ==="
+	$(STAGING_COMPOSE) up -d --wait server web
+	@echo "=== [5/5] Running smoke tests ==="
+	@if bash scripts/smoke-test.sh $(STAGING_API_URL); then \
+		echo ""; \
+		echo "Staging passed. Environment is running:"; \
+		echo "  Web UI:  $(STAGING_WEB_URL)"; \
+		echo "  Backend: $(STAGING_API_URL)"; \
+		echo ""; \
+		echo "Run 'make staging-down' to stop."; \
+		echo "Run 'make pr' to create a pull request."; \
+	else \
+		echo ""; \
+		echo "Smoke tests FAILED. Printing logs..."; \
+		$(STAGING_COMPOSE) logs server; \
+		$(MAKE) staging-down; \
+		exit 1; \
+	fi
+
+staging-down: ## 停止 staging 环境
+	$(STAGING_COMPOSE) down --remove-orphans
+
+staging-logs: ## 查看 staging 服务日志（SERVICE=server|web，默认 server）
+	@SERVICE=$${SERVICE:-server}; \
+	$(STAGING_COMPOSE) logs -f $$SERVICE
+
+pr: ## 推送当前分支并创建 Pull Request（需要 gh CLI，仅限交互式终端）
+	@if ! command -v gh >/dev/null 2>&1; then \
+		echo "Error: gh CLI not found. Install from https://cli.github.com/"; \
+		exit 1; \
+	fi
+	@if ! gh auth status >/dev/null 2>&1; then \
+		echo "Error: gh CLI not authenticated. Run: gh auth login"; \
+		exit 1; \
+	fi
+	@BRANCH=$$(git rev-parse --abbrev-ref HEAD); \
+	if [ "$$BRANCH" = "main" ] || [ "$$BRANCH" = "master" ]; then \
+		echo "Error: Cannot create PR from main/master branch."; \
+		exit 1; \
+	fi
+	@if ! git diff --quiet || ! git diff --cached --quiet; then \
+		echo "You have uncommitted changes:"; \
+		git status --short; \
+		echo ""; \
+		printf "Commit all changes before creating PR? [y/N] "; \
+		read -r answer; \
+		if [ "$$answer" = "y" ] || [ "$$answer" = "Y" ]; then \
+			git add -A; \
+			git commit -m "chore: pre-PR commit"; \
+		else \
+			echo "Aborted. Commit or stash your changes first."; \
+			exit 1; \
+		fi; \
+	fi
+	@BRANCH=$$(git rev-parse --abbrev-ref HEAD); \
+	echo "Pushing branch $$BRANCH to origin..."; \
+	git push -u origin "$$BRANCH"
+	@echo "Creating pull request..."
+	@if gh pr view >/dev/null 2>&1; then \
+		echo "A pull request already exists for this branch:"; \
+		gh pr view --json url -q '.url'; \
+		exit 0; \
+	fi
+	@gh pr create --fill --web || gh pr create --fill
+
+agent-worktrees: ## 创建 Claude/Codex/integration 并行 worktree（TASK=<slug>）
+	@if [ -z "$(TASK)" ]; then \
+		echo "Usage: make agent-worktrees TASK=<task-slug> [AGENT_BASE_REF=origin/main] [AGENT_WORKTREE_ROOT=/path]"; \
+		exit 1; \
+	fi
+	./scripts/setup-agent-worktrees.sh "$(TASK)" "$(AGENT_BASE_REF)" "$(AGENT_WORKTREE_ROOT)"
+
+agent-sync: ## 合并 agent 分支到 integration worktree（TASK=<slug> [SOURCES=\"branch1 branch2\"]）
+	@if [ -z "$(TASK)" ]; then \
+		echo "Usage: make agent-sync TASK=<task-slug> [SOURCES=\"branch1 branch2\"]"; \
+		exit 1; \
+	fi
+	./scripts/sync-agent-integration.sh "$(TASK)" $(SOURCES)

@@ -1,7 +1,9 @@
 package com.iflytek.skillhub.controller.portal;
 
+import com.iflytek.skillhub.auth.rbac.PlatformPrincipal;
 import com.iflytek.skillhub.controller.BaseApiController;
-import com.iflytek.skillhub.controller.support.ZipPackageExtractor;
+import com.iflytek.skillhub.controller.support.SkillPackageArchiveExtractor;
+import com.iflytek.skillhub.domain.shared.exception.DomainBadRequestException;
 import com.iflytek.skillhub.domain.skill.SkillVisibility;
 import com.iflytek.skillhub.domain.skill.service.SkillPublishService;
 import com.iflytek.skillhub.domain.skill.validation.PackageEntry;
@@ -10,6 +12,7 @@ import com.iflytek.skillhub.dto.ApiResponseFactory;
 import com.iflytek.skillhub.dto.PublishResponse;
 import com.iflytek.skillhub.metrics.SkillHubMetrics;
 import com.iflytek.skillhub.ratelimit.RateLimit;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -21,16 +24,16 @@ import java.util.List;
 public class SkillPublishController extends BaseApiController {
 
     private final SkillPublishService skillPublishService;
-    private final ZipPackageExtractor zipPackageExtractor;
+    private final SkillPackageArchiveExtractor skillPackageArchiveExtractor;
     private final SkillHubMetrics skillHubMetrics;
 
     public SkillPublishController(SkillPublishService skillPublishService,
-                                  ZipPackageExtractor zipPackageExtractor,
+                                  SkillPackageArchiveExtractor skillPackageArchiveExtractor,
                                   ApiResponseFactory responseFactory,
                                   SkillHubMetrics skillHubMetrics) {
         super(responseFactory);
         this.skillPublishService = skillPublishService;
-        this.zipPackageExtractor = zipPackageExtractor;
+        this.skillPackageArchiveExtractor = skillPackageArchiveExtractor;
         this.skillHubMetrics = skillHubMetrics;
     }
 
@@ -40,17 +43,23 @@ public class SkillPublishController extends BaseApiController {
             @PathVariable String namespace,
             @RequestParam("file") MultipartFile file,
             @RequestParam("visibility") String visibility,
-            @RequestAttribute("userId") String userId) throws IOException {
+            @AuthenticationPrincipal PlatformPrincipal principal) throws IOException {
 
         SkillVisibility skillVisibility = SkillVisibility.valueOf(visibility.toUpperCase());
 
-        List<PackageEntry> entries = zipPackageExtractor.extract(file);
+        List<PackageEntry> entries;
+        try {
+            entries = skillPackageArchiveExtractor.extract(file);
+        } catch (IllegalArgumentException e) {
+            throw new DomainBadRequestException("error.skill.publish.package.invalid", e.getMessage());
+        }
 
         SkillPublishService.PublishResult publishResult = skillPublishService.publishFromEntries(
                 namespace,
                 entries,
-                userId,
-                skillVisibility
+                principal.userId(),
+                skillVisibility,
+                principal.platformRoles()
         );
 
         PublishResponse response = new PublishResponse(

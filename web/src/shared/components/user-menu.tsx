@@ -1,7 +1,8 @@
 import { useTranslation } from 'react-i18next'
-import { Link, useNavigate } from '@tanstack/react-router'
+import { Link } from '@tanstack/react-router'
 import { useQueryClient } from '@tanstack/react-query'
 import { authApi } from '@/api/client'
+import { cn } from '@/shared/lib/utils'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -18,11 +19,11 @@ interface User {
 
 interface UserMenuProps {
   user: User
+  triggerClassName?: string
 }
 
-export function UserMenu({ user }: UserMenuProps) {
+export function UserMenu({ user, triggerClassName }: UserMenuProps) {
   const { t } = useTranslation()
-  const navigate = useNavigate()
   const queryClient = useQueryClient()
 
   const hasRole = (role: string) => user.platformRoles?.includes(role) ?? false
@@ -34,17 +35,19 @@ export function UserMenu({ user }: UserMenuProps) {
   const handleLogout = async () => {
     try {
       await authApi.logout()
-      queryClient.setQueryData(['auth', 'me'], null)
-      navigate({ to: '/' })
     } catch (error) {
       console.error('Logout failed:', error)
+    } finally {
+      // Always clear cache and redirect, even if API call fails
+      queryClient.setQueryData(['auth', 'me'], null)
+      window.location.href = '/'
     }
   }
 
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <button className="flex items-center gap-3 hover:opacity-80 transition-opacity">
+        <button className={cn('flex items-center gap-3 text-foreground hover:opacity-80 transition-opacity', triggerClassName)}>
           {user.avatarUrl && (
             <img
               src={user.avatarUrl}
@@ -53,7 +56,7 @@ export function UserMenu({ user }: UserMenuProps) {
               className="w-8 h-8 rounded-full border border-border/60"
             />
           )}
-          <span className="text-sm font-medium text-foreground">
+          <span className="text-sm font-medium text-inherit">
             {user.displayName}
           </span>
         </button>
