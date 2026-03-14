@@ -1,8 +1,10 @@
 package com.iflytek.skillhub.controller.cli;
 
+import com.iflytek.skillhub.auth.rbac.PlatformPrincipal;
 import com.iflytek.skillhub.controller.BaseApiController;
-import com.iflytek.skillhub.controller.support.ZipPackageExtractor;
+import com.iflytek.skillhub.controller.support.SkillPackageArchiveExtractor;
 import com.iflytek.skillhub.domain.audit.AuditLogService;
+import com.iflytek.skillhub.domain.shared.exception.DomainBadRequestException;
 import com.iflytek.skillhub.domain.skill.SkillVisibility;
 import com.iflytek.skillhub.domain.skill.service.SkillPublishService;
 import com.iflytek.skillhub.domain.skill.validation.PackageEntry;
@@ -13,6 +15,7 @@ import com.iflytek.skillhub.metrics.SkillHubMetrics;
 import com.iflytek.skillhub.ratelimit.RateLimit;
 import jakarta.servlet.http.HttpServletRequest;
 import org.slf4j.MDC;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -24,18 +27,18 @@ import java.util.List;
 public class CliPublishController extends BaseApiController {
 
     private final SkillPublishService skillPublishService;
-    private final ZipPackageExtractor zipPackageExtractor;
+    private final SkillPackageArchiveExtractor skillPackageArchiveExtractor;
     private final SkillHubMetrics skillHubMetrics;
     private final AuditLogService auditLogService;
 
     public CliPublishController(SkillPublishService skillPublishService,
-                                ZipPackageExtractor zipPackageExtractor,
+                                SkillPackageArchiveExtractor skillPackageArchiveExtractor,
                                 ApiResponseFactory responseFactory,
                                 SkillHubMetrics skillHubMetrics,
                                 AuditLogService auditLogService) {
         super(responseFactory);
         this.skillPublishService = skillPublishService;
-        this.zipPackageExtractor = zipPackageExtractor;
+        this.skillPackageArchiveExtractor = skillPackageArchiveExtractor;
         this.skillHubMetrics = skillHubMetrics;
         this.auditLogService = auditLogService;
     }
@@ -46,18 +49,24 @@ public class CliPublishController extends BaseApiController {
             @RequestParam("file") MultipartFile file,
             @RequestParam("namespace") String namespace,
             @RequestParam("visibility") String visibility,
-            @RequestAttribute("userId") String userId,
+            @AuthenticationPrincipal PlatformPrincipal principal,
             HttpServletRequest request) throws IOException {
 
         SkillVisibility skillVisibility = SkillVisibility.valueOf(visibility.toUpperCase());
 
-        List<PackageEntry> entries = zipPackageExtractor.extract(file);
+        List<PackageEntry> entries;
+        try {
+            entries = skillPackageArchiveExtractor.extract(file);
+        } catch (IllegalArgumentException e) {
+            throw new DomainBadRequestException("error.skill.publish.package.invalid", e.getMessage());
+        }
 
         SkillPublishService.PublishResult publishResult = skillPublishService.publishFromEntries(
                 namespace,
                 entries,
-                userId,
-                skillVisibility
+                principal.userId(),
+                skillVisibility,
+                principal.platformRoles()
         );
 
         PublishResponse response = new PublishResponse(
@@ -71,7 +80,7 @@ public class CliPublishController extends BaseApiController {
         );
         skillHubMetrics.incrementSkillPublish(namespace, publishResult.version().getStatus().name());
         auditLogService.record(
-                userId,
+                principal.userId(),
                 "CLI_PUBLISH",
                 "SKILL_VERSION",
                 publishResult.version().getId(),

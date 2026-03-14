@@ -1,6 +1,7 @@
 {
   "nav": {
     "home": "首页",
+    "explore": "探索",
     "search": "搜索技能",
     "dashboard": "控制台",
     "login": "登录"
@@ -65,7 +66,7 @@
     "ctaTitle": "准备好开始了吗？",
     "ctaDescription": "一条命令即可启动本地开发环境，体验完整的技能管理流程",
     "ctaButton": "立即体验",
-    "footerLicense": "© 2026 SkillHub。MIT 许可证。",
+    "footerLicense": "© 2026 SkillHub。Apache License 2.0。",
     "footerDocs": "文档",
     "footerGithub": "GitHub",
     "footerCommunity": "社区"
@@ -105,7 +106,7 @@
     "title": "登录 SkillHub",
     "subtitle": "选择一个方式登录以继续",
     "tabPassword": "账号密码",
-    "tabOAuth": "GitHub",
+    "tabOAuth": "OAuth",
     "username": "用户名",
     "password": "密码",
     "usernamePlaceholder": "输入用户名",
@@ -115,6 +116,12 @@
     "noAccount": "还没有账号？",
     "register": "立即注册",
     "oauthHint": "使用 GitHub 登录时，认证完成后会自动返回当前站点。",
+    "passwordCompatHint": "当前部署已启用账号密码兼容接入层。表单将路由到 {{name}}，而不是固定使用本地账号接口。",
+    "enterpriseSsoTitle": "企业单点登录",
+    "enterpriseSsoHint": "当前部署已启用兼容接入层。若浏览器中已存在 {{name}} 会话，可直接尝试建立 SkillHub 登录态。",
+    "enterpriseSsoAutoHint": "当前部署已启用自动 {{name}} 探测。若未成功，你仍可继续使用现有登录方式。",
+    "enterpriseSsoAction": "尝试 {{name}} 登录",
+    "enterpriseSsoSubmitting": "正在尝试 {{name}} 登录...",
     "agreementPrefix": "登录即表示你同意我们的",
     "terms": "服务条款",
     "and": "和",
@@ -317,6 +324,10 @@
   "skillDetail": {
     "notFound": "技能不存在",
     "notFoundDesc": "该技能可能已被删除或从未存在",
+    "loginRequired": "需要登录",
+    "loginRequiredDesc": "该技能为私有技能，请登录后查看详情",
+    "accessDenied": "访问被拒绝",
+    "accessDeniedDesc": "您没有权限查看该技能",
     "tabReadme": "README",
     "tabFiles": "文件",
     "tabVersions": "版本",
@@ -388,7 +399,9 @@
     "successDescription": "请立即复制并保存此 Token，它只会显示一次",
     "tokenLabel": "Token",
     "nameDisplay": "名称",
-    "copyToken": "复制 Token"
+    "copyToken": "复制 Token",
+    "copySuccess": "Token 已复制到剪贴板",
+    "copyFailed": "复制 Token 失败，请重试"
   },
   "starButton": {
     "starred": "已收藏",
@@ -409,7 +422,7 @@
       "dashboard": "控制台",
       "mySkills": "我的技能",
       "myNamespaces": "我的命名空间",
-      "stars": "我的星标",
+      "stars": "我的收藏",
       "reviews": "审核管理",
       "promotions": "推广管理",
       "users": "用户管理",
@@ -523,5 +536,25 @@
     "serverError": "服务器错误，请稍后重试",
     "networkError": "网络连接失败，请检查网络",
     "unknown": "操作失败"
+  },
+  "error": {
+    "auth": {
+      "local": {
+        "invalidCredentials": "用户名或密码错误",
+        "accountDisabled": "该账号已被禁用",
+        "accountPending": "该账号尚未激活",
+        "accountMerged": "该账号已合并，不能再用于登录",
+        "locked": "连续失败次数过多，请稍后再试"
+      },
+      "direct": {
+        "disabled": "直连认证兼容层未启用",
+        "providerUnsupported": "当前登录方式不受支持"
+      },
+      "sessionBootstrap": {
+        "disabled": "会话引导能力未启用",
+        "providerUnsupported": "当前 SSO 会话引导方式不受支持",
+        "notAuthenticated": "未检测到可用的外部登录会话"
+      }
+    }
   }
 }

@@ -1,6 +1,7 @@
 {
   "nav": {
     "home": "Home",
+    "explore": "Explore Skills",
     "search": "Search Skills",
     "dashboard": "Dashboard",
     "login": "Login"
@@ -65,7 +66,7 @@
     "ctaTitle": "Ready to Get Started?",
     "ctaDescription": "Start your local development environment with a single command and experience the complete skill management workflow",
     "ctaButton": "Try Now",
-    "footerLicense": "© 2026 SkillHub. MIT License.",
+    "footerLicense": "© 2026 SkillHub. Apache License 2.0.",
     "footerDocs": "Docs",
     "footerGithub": "GitHub",
     "footerCommunity": "Community"
@@ -105,7 +106,7 @@
     "title": "Login to SkillHub",
     "subtitle": "Choose a method to continue",
     "tabPassword": "Password",
-    "tabOAuth": "GitHub",
+    "tabOAuth": "OAuth",
     "username": "Username",
     "password": "Password",
     "usernamePlaceholder": "Enter username",
@@ -115,6 +116,12 @@
     "noAccount": "Don't have an account?",
     "register": "Sign up now",
     "oauthHint": "After GitHub authentication, you will be automatically redirected back to this site.",
+    "passwordCompatHint": "This deployment has the password compatibility layer enabled. The form will route to {{name}} instead of the fixed local account endpoint.",
+    "enterpriseSsoTitle": "Enterprise SSO",
+    "enterpriseSsoHint": "This deployment has the compatibility layer enabled. If your browser already has a {{name}} session, you can try establishing a SkillHub session directly.",
+    "enterpriseSsoAutoHint": "This deployment has automatic {{name}} probing enabled. If it does not succeed, you can continue with the standard login methods.",
+    "enterpriseSsoAction": "Try {{name}}",
+    "enterpriseSsoSubmitting": "Trying {{name}}...",
     "agreementPrefix": "By logging in, you agree to our",
     "terms": "Terms of Service",
     "and": "and",
@@ -317,6 +324,10 @@
   "skillDetail": {
     "notFound": "Skill not found",
     "notFoundDesc": "This skill may have been deleted or never existed",
+    "loginRequired": "Login Required",
+    "loginRequiredDesc": "This skill is private. Please login to view details.",
+    "accessDenied": "Access Denied",
+    "accessDeniedDesc": "You don't have permission to view this skill",
     "tabReadme": "README",
     "tabFiles": "Files",
     "tabVersions": "Versions",
@@ -388,7 +399,9 @@
     "successDescription": "Copy and save this token now. It will only be shown once.",
     "tokenLabel": "Token",
     "nameDisplay": "Name",
-    "copyToken": "Copy Token"
+    "copyToken": "Copy Token",
+    "copySuccess": "Token copied to clipboard",
+    "copyFailed": "Failed to copy token. Please try again."
   },
   "starButton": {
     "starred": "Starred",
@@ -523,5 +536,25 @@
     "serverError": "Server error, please try again later",
     "networkError": "Network connection failed, please check your network",
     "unknown": "Operation failed"
+  },
+  "error": {
+    "auth": {
+      "local": {
+        "invalidCredentials": "Incorrect username or password",
+        "accountDisabled": "This account has been disabled",
+        "accountPending": "This account is pending activation",
+        "accountMerged": "This account has been merged and can no longer be used to log in",
+        "locked": "Too many failed attempts. Please try again later"
+      },
+      "direct": {
+        "disabled": "Direct authentication compatibility is disabled",
+        "providerUnsupported": "This login method is not supported"
+      },
+      "sessionBootstrap": {
+        "disabled": "Session bootstrap is disabled",
+        "providerUnsupported": "This SSO bootstrap method is not supported",
+        "notAuthenticated": "No authenticated external session was found"
+      }
+    }
   }
 }

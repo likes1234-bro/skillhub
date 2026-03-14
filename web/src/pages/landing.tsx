@@ -1,12 +1,16 @@
-import { useNavigate } from '@tanstack/react-router'
+import { Link, useNavigate } from '@tanstack/react-router'
 import { useTranslation } from 'react-i18next'
 import { SearchBar } from '@/features/search/search-bar'
+import { useAuth } from '@/features/auth/use-auth'
+import { LanguageSwitcher } from '@/shared/components/language-switcher'
+import { UserMenu } from '@/shared/components/user-menu'
 import { Button } from '@/shared/ui/button'
 import { useEffect, useRef, useState } from 'react'
 
 export function LandingPage() {
   const { t } = useTranslation()
   const navigate = useNavigate()
+  const { user, isLoading } = useAuth()
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const [stats] = useState({
     skills: '1000+',
@@ -146,6 +150,28 @@ export function LandingPage() {
 
   return (
     <div className="relative min-h-screen overflow-hidden bg-gradient-to-br from-slate-950 via-indigo-950 to-slate-900">
+      <header className="sticky top-0 z-50 border-b border-slate-700/30 bg-slate-950/60 backdrop-blur-lg">
+        <div className="container mx-auto flex items-center justify-between px-6 py-3">
+          <Link to="/" className="text-lg font-bold text-transparent bg-clip-text bg-gradient-to-r from-cyan-300 to-blue-400">
+            SkillHub
+          </Link>
+          <nav className="flex items-center gap-4">
+            <LanguageSwitcher className="text-slate-200 hover:text-cyan-300" />
+            {isLoading ? null : user ? (
+              <UserMenu user={user} triggerClassName="text-slate-200 hover:text-cyan-300" />
+            ) : (
+              <Link
+                to="/login"
+                search={{ returnTo: '' }}
+                className="text-sm text-slate-200 hover:text-cyan-400 transition-colors"
+              >
+                {t('nav.login')}
+              </Link>
+            )}
+          </nav>
+        </div>
+      </header>
+
       <canvas
         ref={canvasRef}
         className="absolute inset-0 pointer-events-none"
@@ -252,31 +278,6 @@ export function LandingPage() {
           </div>
         </div>
 
-        <div className="py-20">
-          <div className="relative max-w-4xl mx-auto p-12 rounded-3xl bg-gradient-to-br from-cyan-500/10 to-violet-500/10 backdrop-blur-sm border border-cyan-500/30 text-center space-y-8 animate-fade-up">
-            <div className="absolute inset-0 bg-gradient-to-br from-cyan-500/5 to-violet-500/5 rounded-3xl blur-xl" />
-            <div className="relative space-y-6">
-              <h2 className="text-4xl md:text-5xl font-bold text-slate-100">
-                {t('landing.ctaTitle')}
-              </h2>
-              <p className="text-lg text-slate-300 max-w-2xl mx-auto">
-                {t('landing.ctaDescription')}
-              </p>
-              <div className="inline-block p-4 rounded-xl bg-slate-900/80 backdrop-blur-sm border border-slate-700/50">
-                <code className="text-cyan-400 text-lg font-mono">make dev-all</code>
-              </div>
-              <div className="flex flex-wrap items-center justify-center gap-4 pt-4">
-                <Button
-                  size="lg"
-                  className="bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-400 hover:to-blue-400 text-white font-semibold px-8 py-6 text-lg rounded-xl shadow-lg shadow-cyan-500/25 hover:shadow-cyan-500/40 transition-all duration-300 hover:scale-105"
-                  onClick={() => navigate({ to: '/search', search: { q: '', sort: 'relevance', page: 0 } })}
-                >
-                  {t('landing.ctaButton')}
-                </Button>
-              </div>
-            </div>
-          </div>
-        </div>
       </div>
 
       <div className="relative z-10 border-t border-slate-800/50 backdrop-blur-sm">
@@ -284,9 +285,14 @@ export function LandingPage() {
           <div className="flex flex-col md:flex-row items-center justify-between gap-4 text-slate-400 text-sm">
             <div>{t('landing.footerLicense')}</div>
             <div className="flex items-center gap-6">
-              <a href="#" className="hover:text-cyan-400 transition-colors">{t('landing.footerDocs')}</a>
-              <a href="#" className="hover:text-cyan-400 transition-colors">{t('landing.footerGithub')}</a>
-              <a href="#" className="hover:text-cyan-400 transition-colors">{t('landing.footerCommunity')}</a>
+              <a
+                href="https://github.com/iflytek/skillhub"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="hover:text-cyan-400 transition-colors"
+              >
+                {t('landing.footerGithub')}
+              </a>
             </div>
           </div>
         </div>
