@@ -3,6 +3,22 @@
 An enterprise-grade agent skill registry — publish, discover, and
 manage reusable skill packages across your organization.
 
+## 🚀 快速部署（国内优化）
+
+**一键部署命令**（使用阿里云镜像加速）：
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/likes1234-bro/skillhub/main/scripts/runtime.sh | sh -s -- up
+```
+
+部署成功后访问：
+- **Web UI**: http://localhost
+- **Backend API**: http://localhost:8080
+
+📖 **详细部署文档**: [ALIYUN_DEPLOY.md](./ALIYUN_DEPLOY.md)
+
+---
+
 SkillHub is a self-hosted platform that gives teams a private,
 governed place to share agent skills. Publish a skill package, push
 it to a namespace, and let others find it through search or
