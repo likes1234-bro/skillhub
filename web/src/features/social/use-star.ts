@@ -31,11 +31,11 @@ async function toggleStar(skillId: number, starred: boolean): Promise<void> {
   }
 }
 
-export function useStar(skillId: number) {
+export function useStar(skillId: number, enabled = true) {
   return useQuery({
     queryKey: ['skills', skillId, 'star'],
     queryFn: () => getStarStatus(skillId),
-    enabled: !!skillId,
+    enabled: !!skillId && enabled,
   })
 }
 
@@ -47,6 +47,7 @@ export function useToggleStar(skillId: number) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['skills', skillId, 'star'] })
       queryClient.invalidateQueries({ queryKey: ['skills'] })
+      queryClient.invalidateQueries({ queryKey: ['skills', 'stars'] })
     },
   })
 }

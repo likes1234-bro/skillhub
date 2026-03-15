@@ -2,6 +2,8 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import type { SkillSummary, SkillDetail, SkillVersion, SkillFile, SearchParams, PagedResponse, PublishResult, Namespace, NamespaceMember } from '@/api/types'
 import { fetchJson, fetchText, getCsrfHeaders, meApi } from '@/api/client'
 
+const PUBLISH_REQUEST_TIMEOUT_MS = 60_000
+
 async function searchSkills(params: SearchParams): Promise<PagedResponse<SkillSummary>> {
   const queryParams = new URLSearchParams()
   if (params.q) queryParams.append('q', params.q)
@@ -75,6 +77,7 @@ async function publishSkill(params: { namespace: string; file: File; visibility:
     method: 'POST',
     headers: getCsrfHeaders(),
     body: formData,
+    timeoutMs: PUBLISH_REQUEST_TIMEOUT_MS,
   })
 }
 
@@ -83,6 +86,7 @@ export function useSearchSkills(params: SearchParams) {
   return useQuery({
     queryKey: ['skills', 'search', params],
     queryFn: () => searchSkills(params),
+    enabled: params.starredOnly !== true,
   })
 }
 
@@ -125,10 +129,11 @@ export function useMySkills() {
   })
 }
 
-export function useMyStars() {
+export function useMyStars(enabled = true) {
   return useQuery({
     queryKey: ['skills', 'stars'],
     queryFn: getMyStars,
+    enabled,
   })
 }
 
