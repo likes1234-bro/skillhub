@@ -20,10 +20,10 @@ jobs:
   publish:
     runs-on: ubuntu-latest
     env:
-      MIRROR_REGISTRY: ${{ secrets.MIRROR_REGISTRY }}
-      MIRROR_NAMESPACE: ${{ secrets.MIRROR_NAMESPACE }}
-      MIRROR_REGISTRY_USERNAME: ${{ secrets.MIRROR_REGISTRY_USERNAME }}
-      MIRROR_REGISTRY_PASSWORD: ${{ secrets.MIRROR_REGISTRY_PASSWORD }}
+      MIRROR_REGISTRY: ${{ secrets.MIRROR_REGISTRY || secrets.ALIYUN_REGISTRY }}
+      MIRROR_NAMESPACE: ${{ secrets.MIRROR_NAMESPACE || secrets.ALIYUN_NAME_SPACE }}
+      MIRROR_REGISTRY_USERNAME: ${{ secrets.MIRROR_REGISTRY_USERNAME || secrets.ALIYUN_REGISTRY_USER }}
+      MIRROR_REGISTRY_PASSWORD: ${{ secrets.MIRROR_REGISTRY_PASSWORD || secrets.ALIYUN_REGISTRY_PASSWORD }}
     strategy:
       fail-fast: false
       matrix:
@@ -118,10 +118,10 @@ jobs:
     runs-on: ubuntu-latest
     needs: publish
     env:
-      MIRROR_REGISTRY: ${{ secrets.MIRROR_REGISTRY }}
-      MIRROR_NAMESPACE: ${{ secrets.MIRROR_NAMESPACE }}
-      MIRROR_REGISTRY_USERNAME: ${{ secrets.MIRROR_REGISTRY_USERNAME }}
-      MIRROR_REGISTRY_PASSWORD: ${{ secrets.MIRROR_REGISTRY_PASSWORD }}
+      MIRROR_REGISTRY: ${{ secrets.MIRROR_REGISTRY || secrets.ALIYUN_REGISTRY }}
+      MIRROR_NAMESPACE: ${{ secrets.MIRROR_NAMESPACE || secrets.ALIYUN_NAME_SPACE }}
+      MIRROR_REGISTRY_USERNAME: ${{ secrets.MIRROR_REGISTRY_USERNAME || secrets.ALIYUN_REGISTRY_USER }}
+      MIRROR_REGISTRY_PASSWORD: ${{ secrets.MIRROR_REGISTRY_PASSWORD || secrets.ALIYUN_REGISTRY_PASSWORD }}
 
     steps:
       - name: Check out repository
