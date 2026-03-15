@@ -68,11 +68,11 @@ jobs:
 
       - name: Log in to mirror registry
         if: ${{ steps.mirror.outputs.enabled == 'true' }}
-        uses: docker/login-action@v3
-        with:
-          registry: ${{ env.MIRROR_REGISTRY }}
-          username: ${{ env.MIRROR_REGISTRY_USERNAME }}
-          password: ${{ env.MIRROR_REGISTRY_PASSWORD }}
+        shell: bash
+        run: |
+          echo "${MIRROR_REGISTRY_PASSWORD}" | docker login "${MIRROR_REGISTRY}" \
+            --username "${MIRROR_REGISTRY_USERNAME}" \
+            --password-stdin
 
       - name: Prepare image targets
         id: targets
@@ -143,11 +143,11 @@ jobs:
 
       - name: Log in to mirror registry
         if: ${{ steps.mirror.outputs.enabled == 'true' }}
-        uses: docker/login-action@v3
-        with:
-          registry: ${{ env.MIRROR_REGISTRY }}
-          username: ${{ env.MIRROR_REGISTRY_USERNAME }}
-          password: ${{ env.MIRROR_REGISTRY_PASSWORD }}
+        shell: bash
+        run: |
+          echo "${MIRROR_REGISTRY_PASSWORD}" | docker login "${MIRROR_REGISTRY}" \
+            --username "${MIRROR_REGISTRY_USERNAME}" \
+            --password-stdin
 
       - name: Mirror runtime dependency images
         if: ${{ steps.mirror.outputs.enabled == 'true' }}
