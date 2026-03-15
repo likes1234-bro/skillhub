@@ -17,21 +17,24 @@
 
 ---
 
-## 🚀 快速部署（国内优化）
+## 🚀 快速部署（支持镜像加速）
 
-**一键部署命令**（使用阿里云镜像加速）：
+**默认部署命令**：
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/likes1234-bro/skillhub/main/scripts/runtime.sh | sh -s -- up
+curl -fsSL https://raw.githubusercontent.com/iflytek/skillhub/main/scripts/runtime.sh | sh -s -- up
+```
+
+**镜像加速部署命令**：
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/iflytek/skillhub/main/scripts/runtime.sh | sh -s -- up \
+  --mirror-registry <registry>/<namespace>
 ```
 
 部署成功后访问：
 - **Web UI**: http://localhost
 - **Backend API**: http://localhost:8080
-
-📖 **详细部署文档**: [ALIYUN_DEPLOY.md](./ALIYUN_DEPLOY.md)
-
----
 
 SkillHub is a self-hosted platform that gives teams a private,
 governed place to share agent skills. Publish a skill package, push
@@ -140,6 +143,15 @@ This is the supported path for anyone who wants a ready-to-use local
 environment without building the backend or frontend on their machine.
 Published images target both `linux/amd64` and `linux/arm64`.
 
+If you maintain a closer registry mirror, the runtime helper can rewrite
+the stack to use mirrored repositories for the published images and core
+runtime dependencies:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/iflytek/skillhub/main/scripts/runtime.sh | sh -s -- up \
+  --mirror-registry <registry>/<namespace>
+```
+
 1. Copy the runtime environment template.
 2. Pick an image tag.
 3. Start the stack with Docker Compose.
@@ -152,6 +164,7 @@ Recommended image tags:
 
 - `SKILLHUB_VERSION=edge` for the latest `main` build
 - `SKILLHUB_VERSION=vX.Y.Z` for a fixed release
+- `--mirror-registry <registry>/<namespace>` to switch the runtime stack to mirrored images
 
 Start the runtime:
 
@@ -191,6 +204,9 @@ Recommended production baseline:
 
 If the GHCR package remains private, run `docker login ghcr.io` before
 `docker compose up -d`.
+
+When `--mirror-registry` is used, the runtime helper writes concrete image
+overrides into `.env.release`, including `POSTGRES_IMAGE` and `REDIS_IMAGE`.
 
 ### Monitoring
 
